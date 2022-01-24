@@ -2,11 +2,10 @@
 #include <queue>
 #include <cmath>
 #include <limits>
+#include <vector>
 #include <thread>
-#include <future>
-#include <condition_variable>
-#include <mutex>
 
+// ========================================================
 // Return the number of binary digits
 static uint64_t length(uint64_t x)
 {
@@ -38,107 +37,45 @@ static inline uint64_t V(uint64_t x)
     return 4u * x + 1u;
 }
 
-// https://juanchopanzacpp.wordpress.com/2013/02/26/concurrent-queue-c11/
+// ========================================================
+// Just a wrapper on FIFO: First In First Out (not thread safe)
 template <typename T>
-class ThreadSafeQueue
+class Fifo
 {
 public:
 
-    bool empty()
-    {
-        std::unique_lock<std::mutex> mlock(mutex_);
-        return queue_.empty();
-    }
-
     bool pop(T& item)
     {
-        std::unique_lock<std::mutex> mlock(mutex_);
-        if (queue_.empty())
+        if (m_queue.empty())
             return false;
-        item = queue_.front();
-        queue_.pop();
+        item = m_queue.front();
+        m_queue.pop();
         return true;
     }
 
     void push(const T& item)
     {
-        std::unique_lock<std::mutex> mlock(mutex_);
-        queue_.push(item);
-        mlock.unlock();
-        cond_.notify_one();
+        m_queue.push(item);
+    }
+
+    size_t size()
+    {
+        return m_queue.size();
+    }
+
+    size_t empty()
+    {
+        return m_queue.size() == 0u;
     }
 
 private:
 
-    std::queue<T> queue_;
-    std::mutex mutex_;
-    std::condition_variable cond_;
+    std::queue<T> m_queue;
 };
 
-// https://www.youtube.com/watch?v=w6dQQt10Dxo
-class ThreadPool
-{
-public:
-
-    ThreadPool()
-    {
-        int const thread_count = std::thread::hardware_concurrency();
-        try
-        {
-            for (int i = 0; i < thread_count; ++i)
-            {
-                m_threads.push_back(std::thread(&ThreadPool::worker_thread, this));
-            }
-        }
-        catch (std::exception const&)
-        {
-            m_done = true;
-            throw;
-        }
-    }
-
-    ~ThreadPool()
-    {
-        m_done = true;
-        for (auto& it: m_threads)
-        {
-            if (it.joinable())
-            {
-                it.join();
-            }
-        }
-    }
-
-    template<typename Function>
-    void submit(Function f)
-    {
-        m_work_queue.push(std::function<void()>(f));
-    }
-
-private:
-
-    void worker_thread()
-    {
-        while (!m_done)
-        {
-            std::function<void()> task;
-            if (m_work_queue.pop(task))
-            {
-                task();
-            }
-            else
-            {
-                std::this_thread::yield();
-            }
-        }
-    }
-
-private:
-
-    std::atomic<bool> m_done{false};
-    ThreadSafeQueue<std::function<void()>> m_work_queue;
-    std::vector<std::thread> m_threads;
-};
+// ========================================================
+// Number of workers = 2 * CPU cores (shall be >= 1)
+#define JOBS 16
 
 int main(int argc, char *argv[])
 {
@@ -153,89 +90,156 @@ int main(int argc, char *argv[])
     // Inputs
     uint64_t s = std::stoul(argv[1]);
     uint64_t max = std::stoul(argv[2]); // max bin length
-    //std::cout << std::this_thread::get_id() << " Inputs: s=" << s << ", max=" << max << ":" << std::endl;
+    uint64_t ls = length(s);
 
-    // Output (counter)
-    std::atomic<uint64_t> X{0u};
+    std::cout << "Inputs: s=" << s << ", max=" << max << ":" << std::endl;
 
-    ThreadSafeQueue<uint64_t> fifo;
+    // Transitioning elements for the algorithm
+    Fifo<uint64_t> fifos[JOBS]; // 1 FIFO for each thread
+    Fifo<uint64_t> fifo; // 1 FIFO for the main thread (note: could be fifos[0])
+
+    // Push the initial number
     fifo.push(s);
 
-    uint64_t ls = length(s);
-    //std::cout << std::this_thread::get_id() << " S=" << s << ", bdig=" << ls << std::endl;
+    // Output (counter)
+    uint64_t XX[JOBS]; // X for each threads
+    uint64_t X = 0u; //  X for the main thread (note: could bne XX[0])
 
-    { // Scope to force thread joins
-        ThreadPool pool;
-        for (int job = 0; job < 64; ++job)
+    for (int job = 0; job < JOBS; ++job)
+    {
+        XX[job] = 0u;
+    }
+
+    // Main thread to fill the first results into the FIFO
+    {
+        uint64_t n;
+
+        while (fifo.pop(n))
         {
-            pool.submit([&] {
+            // Halt the main thread when enough data is reached for filling
+            // other threads' FIFO (each thread fifo should have >= 1 element)
+            if (fifo.size() > JOBS)
+            {
+                std::cout << "Initial FIFO size: " << fifo.size() << std::endl;
+                fifo.push(n);
+                break;
+            }
+
+            uint64_t ln = length(n);
+            uint64_t vn = V(n);
+
+            if (typeA(n))
+            {
+                fifo.push((2u * n - 1u) / 3u);
+
+                if (Ag(n))
+                {
+                    X += 1u;
+                }
+                if (ln < ls + max - 1u)
+                {
+                    fifo.push(vn);
+                }
+            }
+            else if (typeB(n))
+            {
+                if (ln < ls + max - 1u)
+                {
+                    fifo.push(vn);
+                }
+            }
+            else if (typeC(n))
+            {
+                if ((ln < ls + max) && (n > 1u))
+                {
+                    fifo.push((4u * n - 1u) / 3u);
+                }
+                if (ln < ls + max - 1u)
+                {
+                    fifo.push(vn);
+                }
+            }
+        }
+    }
+
+    // Transfer elements: FIFO => FIFOs
+    {
+        uint64_t n;
+        int job = 0;
+        while (fifo.pop(n))
+        {
+            fifos[job].push(n);
+            ++job;
+            if (job == JOBS)
+                job = 0;
+        }
+    }
+
+    // Threaded algorithm: 1 FIFO by thread
+    {
+        std::thread threads[JOBS];
+
+        for (int job = 0; job < JOBS; ++job)
+        {
+            //pool.push_task([&Fifos, &XX, &ls, &max, job] {
+            threads[job] = std::thread([&fifos, &XX, &ls, &max, job] {
                 uint64_t n;
-                while (fifo.pop(n))
+                while (fifos[job].pop(n))
                 {
                     uint64_t ln = length(n);
                     uint64_t vn = V(n);
 
-                    //printf("%lu: %zu\n", std::hash<std::thread::id>{}(std::this_thread::get_id()), n);
-                    //std::cout << std::this_thread::get_id() << " N=" << n << ", bdig=" << ln << ", ";
                     if (typeA(n))
                     {
-                        uint64_t tmp = (2u * n - 1u) / 3u;
-                        //std::cout << std::this_thread::get_id() << " => push: " << tmp << " ";
-                        fifo.push(tmp);
+                        fifos[job].push((2u * n - 1u) / 3u);
 
-                        //std::cout << std::this_thread::get_id() << " typeA: ";
                         if (Ag(n))
                         {
-                            X += 1u;
-                            //std::cout << std::this_thread::get_id() << " => X=" << X  << " ";
+                            XX[job] += 1u;
                         }
                         if (ln < ls + max - 1u)
                         {
-                            //if (n > std::numeric_limits<uint64_t>::max() / 2u)
-                            //{
-                            //    std::cerr << "Overflow 1" << std::endl;
-                            //    return EXIT_FAILURE;
-                            //}
-
-                            //std::cout << std::this_thread::get_id() << " => push: " << vn << " ";
-                            fifo.push(vn);
+                            fifos[job].push(vn);
                         }
-                        //std::cout << std::endl;
                     }
                     else if (typeB(n))
                     {
-                        //std::cout << std::this_thread::get_id() << " typeB: ";
                         if (ln < ls + max - 1u)
                         {
-                            //std::cout << std::this_thread::get_id() << " => push: " << vn << " ";
-                            fifo.push(vn);
+                            fifos[job].push(vn);
                         }
-                        //std::cout << std::endl;
                     }
                     else if (typeC(n))
                     {
-                        //std::cout << std::this_thread::get_id() << " typeC ";
                         if ((ln < ls + max) && (n > 1u))
                         {
-                            //if (n > std::numeric_limits<uint64_t>::max() / 4u)
-                            //{
-                            //    std::cerr << "Overflow 2" << std::endl;
-                            //    return EXIT_FAILURE;
-                            //}
-
-                            //std::cout << std::this_thread::get_id() << " => push: " << vn << " ";
-                            fifo.push((4u * n - 1u) / 3u);
+                            fifos[job].push((4u * n - 1u) / 3u);
                         }
                         if (ln < ls + max - 1u)
                         {
-                            //std::cout << std::this_thread::get_id() << " => push: " << vn << " ";
-                            fifo.push(vn);
+                            fifos[job].push(vn);
                         }
-                        //std::cout << std::endl;
                     }
                 }
-            }); // thread func
-        } // for
+            }); // end thread func
+        } // end for
+
+        // Wait for tasks ending
+        for (int job = 0; job < JOBS; ++job)
+        {
+            if (threads[job].joinable())
+            {
+                threads[job].join();
+            }
+        }
+    } // end scope
+
+    // Summation on X
+    {
+        for (int job = 0; job < JOBS; ++job)
+        {
+            X += XX[job];
+        }
     }
 
     std::cout << " Res: " << X << std::endl;
