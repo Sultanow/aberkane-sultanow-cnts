@@ -3,7 +3,7 @@
 #include <math.h>
 
 #define T_SIZE 100000000
-#define len(x) ((int)log2(x)+1)
+#define len(x) ((unsigned int)log2(x)+1)
 #define typeB(x) ((x)%3==0)
 #define typeA(x) ((x)%3==2)
 #define typeC(x) ((x)%3==1)
@@ -35,11 +35,11 @@ int main(int argc, char *argv[])
     */
 
     t[0] = s;
-    unsigned int ls = (int)(ceil(log(s) / log(2)));
+    unsigned int ls = (unsigned int)(ceil(log(s) / log(2)));
     unsigned int tContents=1, index=1; // index points to the first free space
     //printf("S=%d bits long\n",len(s));
 
-    unsigned int n, ln, vn;
+    unsigned int n;
     unsigned int i = 0;
 
     //printf("Contents = ");
