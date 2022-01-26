@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
     // Inputs
     uint64_t s = atoi(argv[1]);
     uint64_t max = atoi(argv[2]); // max bin length
-    printf("Inputs: s=%zu, max=%zu\n", s, max);
+    //printf("Inputs: s=%zu, max=%zu\n", s, max);
 
     uint64_t X = 0;
     /*
@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
         //printf("%zu, ",tContents);
         if (tContents >= T_SIZE)
         {
-            printf("\n***\n***\n*** On est au bout du tableau !\n***\n***\n***\n");
+            //printf("\n***\n***\n*** On est au bout du tableau !\n***\n***\n***\n");
             exit(1);
         }
         while ((n = t[i]) == 0)
@@ -61,14 +61,14 @@ int main(int argc, char *argv[])
         i = (i + 1) % T_SIZE;
 
         //printf("Contenu = %zu, i = %zu\n",tContents,i);
-        //printf("N=%zu, bin digits=%zu,",n,len(n));
+        //printf("N=%zu, bdig=%zu,", n, len(n));
         if (typeA(n))
         {
-            //printf("typeA: ");
+            //printf(" typeA: ");
             t[index] = (2 * n - 1) / 3;
+            //printf("=> push: %zu ", t[index]);
             tContents++;
             index = (index + 1) % T_SIZE;
-            //printf("=> push: %zu ",t[index-1]);
             if (Ag(n))
             {
                 //printf("=> X=%zu ",X);
@@ -77,41 +77,42 @@ int main(int argc, char *argv[])
             if ((len(n)) < ls + max - 1)
             {
                 t[index] = v(n);
+                //printf("=> push: %zu", t[index]);
                 tContents++;
                 index = (index + 1) % T_SIZE;
-                //printf("=> push: %zu\n",t[index-1]);
             }
+            //printf("\n");
         }
         else if (typeB(n))
         {
-            //printf("typeB: ");
+            //printf(" typeB: ");
             if (len(n) < ls + max - 1)
             {
                 t[index] = v(n);
+                //printf("=> push: %zu\n", t[index]);
                 tContents++;
                 index = (index + 1) % T_SIZE;
-                //printf("=> push: %zu\n",t[index-1]);
             }
         }
         else if (typeC(n))
         {
-            //printf("typeC: ");
+            //printf(" typeC: ");
             if ((len(n) < ls + max) && (n > 1))
             {
                 t[index] = (4 * n - 1) / 3;
+                //printf("=> push: %zu n", t[index]);
                 tContents++;
-                //printf("=> push: %zu ",t[index-1]);
                 index = (index + 1) % T_SIZE;
             }
             if (len(n) < ls + max - 1)
             {
                 t[index] = v(n);
+                //printf("=> push: %zu ", t[index]);
                 tContents++;
-                //printf("=> push: %zu",t[index-1]);
                 index = (index + 1) % T_SIZE;
             }
             //printf("\n");
         }
     }
-    printf("\nRes: %zu\n",X);
+    //printf("\nRes: %zu\n",X);
 }

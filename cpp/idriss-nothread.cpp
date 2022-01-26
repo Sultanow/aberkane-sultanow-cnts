@@ -67,11 +67,11 @@ int main(int argc, char *argv[])
         //std::cout << "N=" << n << ", bdig=" << ln << ", ";
         if (typeA(n))
         {
+            //std::cout << "typeA: ";
             uint64_t tmp = (2u * n - 1u) / 3u;
             //std::cout << "=> push: " << tmp << " ";
             fifo.push(tmp);
 
-            //std::cout << "typeA: ";
             if (Ag(n))
             {
                 X += 1u;
