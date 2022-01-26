@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
     */
 
     t[0] = s;
-    uint64_t ls = (uint64_t)(ceil(log(s) / log(2)));
+    uint64_t ls = len(s);
     uint64_t tContents=1, index=1; // index points to the first free space
     //printf("S=%zu bits long\n",len(s));
 
