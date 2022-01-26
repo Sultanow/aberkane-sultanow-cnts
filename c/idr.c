@@ -114,5 +114,5 @@ int main(int argc, char *argv[])
             //printf("\n");
         }
     }
-    //printf("\nRes: %zu\n",X);
+    printf("\nRes: %zu\n",X);
 }
