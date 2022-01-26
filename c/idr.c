@@ -9,7 +9,7 @@
 #define typeA(x) ((x)%3==2)
 #define typeC(x) ((x)%3==1)
 #define Ag(x) (((x-17)%24)==0)
-#define v(x) (4*x+1)
+#define v(x) (4*(x)+1)
 
 uint64_t t[T_SIZE];
 
