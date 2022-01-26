@@ -1,16 +1,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
+#include <stdint.h>
 
-#define T_SIZE 100000000
-#define len(x) ((unsigned int)log2(x)+1)
+#define T_SIZE ((uint64_t)100000000)
+#define len(x) ((uint64_t)log2(x)+1)
 #define typeB(x) ((x)%3==0)
 #define typeA(x) ((x)%3==2)
 #define typeC(x) ((x)%3==1)
 #define Ag(x) (((x-17)%24)==0)
 #define v(x) (4*x+1)
 
-unsigned int t[T_SIZE];
+uint64_t t[T_SIZE];
 
 int main(int argc, char *argv[])
 {
@@ -21,11 +22,11 @@ int main(int argc, char *argv[])
     }
 
     // Inputs
-    int s = atoi(argv[1]);
-    int max = atoi(argv[2]); // max bin length
-    printf("Inputs: s=%d, max=%d\n",s,max);
+    uint64_t s = atoi(argv[1]);
+    uint64_t max = atoi(argv[2]); // max bin length
+    printf("Inputs: s=%zu, max=%zu\n", s, max);
 
-    unsigned int X = 0;
+    uint64_t X = 0;
     /*
       int *t=(int *) malloc(T_SIZE*4);
       if (t==NULL) {
@@ -35,17 +36,17 @@ int main(int argc, char *argv[])
     */
 
     t[0] = s;
-    unsigned int ls = (unsigned int)(ceil(log(s) / log(2)));
-    unsigned int tContents=1, index=1; // index points to the first free space
-    //printf("S=%d bits long\n",len(s));
+    uint64_t ls = (uint64_t)(ceil(log(s) / log(2)));
+    uint64_t tContents=1, index=1; // index points to the first free space
+    //printf("S=%zu bits long\n",len(s));
 
-    unsigned int n;
-    unsigned int i = 0;
+    uint64_t n;
+    uint64_t i = 0;
 
     //printf("Contents = ");
     while (tContents > 0)
     {
-        //printf("%d, ",tContents);
+        //printf("%zu, ",tContents);
         if (tContents >= T_SIZE)
         {
             printf("\n***\n***\n*** On est au bout du tableau !\n***\n***\n***\n");
@@ -59,18 +60,18 @@ int main(int argc, char *argv[])
         t[i] = 0; // on supprime l'élément trouvé
         i = (i + 1) % T_SIZE;
 
-        //printf("Contenu = %d, i = %d\n",tContents,i);
-        //printf("N=%d, bin digits=%d,",n,len(n));
+        //printf("Contenu = %zu, i = %zu\n",tContents,i);
+        //printf("N=%zu, bin digits=%zu,",n,len(n));
         if (typeA(n))
         {
             //printf("typeA: ");
             t[index] = (2 * n - 1) / 3;
             tContents++;
             index = (index + 1) % T_SIZE;
-            //printf("=> push: %d ",t[index-1]);
+            //printf("=> push: %zu ",t[index-1]);
             if (Ag(n))
             {
-                //printf("=> X=%d ",X);
+                //printf("=> X=%zu ",X);
                 X++;
             }
             if ((len(n)) < ls + max - 1)
@@ -78,7 +79,7 @@ int main(int argc, char *argv[])
                 t[index] = v(n);
                 tContents++;
                 index = (index + 1) % T_SIZE;
-                //printf("=> push: %d\n",t[index-1]);
+                //printf("=> push: %zu\n",t[index-1]);
             }
         }
         else if (typeB(n))
@@ -89,7 +90,7 @@ int main(int argc, char *argv[])
                 t[index] = v(n);
                 tContents++;
                 index = (index + 1) % T_SIZE;
-                //printf("=> push: %d\n",t[index-1]);
+                //printf("=> push: %zu\n",t[index-1]);
             }
         }
         else if (typeC(n))
@@ -99,18 +100,18 @@ int main(int argc, char *argv[])
             {
                 t[index] = (4 * n - 1) / 3;
                 tContents++;
-                //printf("=> push: %d ",t[index-1]);
+                //printf("=> push: %zu ",t[index-1]);
                 index = (index + 1) % T_SIZE;
             }
             if (len(n) < ls + max - 1)
             {
                 t[index] = v(n);
                 tContents++;
-                //printf("=> push: %d",t[index-1]);
+                //printf("=> push: %zu",t[index-1]);
                 index = (index + 1) % T_SIZE;
             }
             //printf("\n");
         }
     }
-    printf("\nRes: %d\n",X);
+    printf("\nRes: %zu\n",X);
 }
